@@ -20,4 +20,7 @@ public:
 
 	UPROPERTY()
 		bool KnockedBack;
+	bool Emote;
+	bool UltiCall;
+	bool Dead;
 };

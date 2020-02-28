@@ -42,6 +42,10 @@ private:
 
 public:
 
+	void setSpawnLocation(FVector spawnVector) { SpawnLocation = spawnVector; };
+	FVector getSpawnLocation(FVector spawnVector) { return SpawnLocation; };
+
+
 	UPROPERTY(EditAnywhere, Category="Components")
 	class USphereComponent* Left;
 

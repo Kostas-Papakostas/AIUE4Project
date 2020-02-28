@@ -13,8 +13,5 @@ UCLASS()
 class AIPROJECT_API UAbility_ThrowKnife : public UBTTask_BlackboardBase
 {
 	GENERATED_BODY()
-	
-	
-	
-	
+
 };

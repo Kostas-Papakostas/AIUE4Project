@@ -19,4 +19,5 @@ public:
 
 	UPROPERTY()
 		bool Death;
+	bool playerDead;
 };
