@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "NPC_Cpp.h"
 #include "UObject/ConstructorHelpers.h"
 #include "math.h"
@@ -23,7 +21,6 @@
 #include "KwangAnimEventGraph_Cpp.h"
 #include "DestructibleComponent.h"
 #include "GhostTrail_Cpp.h"
-#include <functional>
 
 #define RUN_ONCE(runcode) \
 do\
@@ -46,11 +43,16 @@ ANPC_Cpp::ANPC_Cpp()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
 	StLoop=true;
 	StStart=true;
 	UltiRdy=true;
 	StrikesAreRdy=true;
-	code_ran = false;
+	enemyDead=false;
+	UltCooldown=15.f;
+	ThrowSwordCooldown=8.f;
+	StunRecoveryTimer=0.f;
+	Front=Back= Right= Left=0.f;
 
 	KwangMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Char_Mesh"));
 	KwangMesh->SetOnlyOwnerSee(true);
@@ -92,6 +94,7 @@ void ANPC_Cpp::BeginPlay()
 void ANPC_Cpp::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	/*Stun recovery*/
 	if (UGameplayStatics::GetRealTimeSeconds(GetWorld()) >= StunRecoveryTimer) {
 		StLoop = false;
 		ANPC_AI_Cpp* controller = Cast<ANPC_AI_Cpp>(ThisClass::GetController());
@@ -101,6 +104,7 @@ void ANPC_Cpp::Tick(float DeltaTime)
 		}
 	}
 
+	/*Abillities cooldown*/
 	if (UGameplayStatics::GetRealTimeSeconds(GetWorld()) >= ThrowSwordCooldown) {
 		StrikesAreRdy = true;
 	}
@@ -113,7 +117,9 @@ void ANPC_Cpp::Tick(float DeltaTime)
 		P_Kwang_Primary_Trail_L->SetActive(false, false);
 		P_Kwang_Primary_Trail_L->SetActive(true, false);
 	}
+	/*End of abillities cooldown*/
 
+	/*check if dead*/
 	if (HP_Remaining <= 0) {
 		KwangMesh->GetAnimInstance();
 		Cast<UKwangAnimEventGraph_Cpp>(KwangMesh->GetAnimInstance())->Death=true;
@@ -122,6 +128,7 @@ void ANPC_Cpp::Tick(float DeltaTime)
 
 }
 
+/*partol path stores the patrol points*/
 APatrolPath_Cpp* ANPC_Cpp::getPatrolPath() {
 	return PatrolPath;
 }
@@ -136,6 +143,7 @@ void ANPC_Cpp::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void ANPC_Cpp::Destroyed() {
 	Super::Destroyed();
 
+	/*Being called when npc got killed, and quits game*/
 	TArray<AActor*> players;
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), destroy_Emitter, ThisClass::GetActorLocation(), FRotator::ZeroRotator, { 10,10,10 });
 	UKismetSystemLibrary::Delay(this, 5, FLatentActionInfo::FLatentActionInfo());
@@ -149,7 +157,7 @@ float ANPC_Cpp::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 	AActor* DamageCauser){
 	
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-
+	/*If the npc prepares for teleport takes less damage than usual*/
 	if (teleport) {
 		DamageReceived = DamageAmount / 2;
 		HP_Remaining = HP_Remaining - (int)DamageReceived;
@@ -176,17 +184,22 @@ void ANPC_Cpp::StartStunLoop_Implementation() {
 	Cast<ANPC_AI_Cpp>(ThisClass::GetController())->Stunned_Implementation();
 }
 
+/*SPAWNS A GHOST OF A THE TRAIL*/
 void ANPC_Cpp::GhostCount_Implementation() {
 	GetWorld()->SpawnActor<AGhostTrail_Cpp>(GetClass(), KwangMesh->GetComponentToWorld());
 }
 
+/*spawns ghost trails*/
 void ANPC_Cpp::ManyGhosts_Implementation() {
+
+	/*SPAWNS GHOSTS TRAIL*/
 	FRotator GhostRotation = UKismetMathLibrary::FindLookAtRotation(KwangMesh->GetComponentToWorld().GetLocation(),
 		KwangMesh->GetRightVector());
 	FTransform GhostTransform = KwangMesh->GetComponentToWorld();
 	GhostTransform.SetRotation(GhostRotation.Quaternion());
 	GetWorld()->SpawnActor<AGhostTrail_Cpp>(GetClass(), GhostTransform);
 
+	/*SPAWNS 2 DIFFERENT GHOST ROTATED ON LEFT AND RIGHT VECTORS OF THE NPC*/
 	FRotator secondGhostRotation = UKismetMathLibrary::FindLookAtRotation(KwangMesh->GetComponentToWorld().GetLocation(), KwangMesh->GetRightVector()*-1);
 	GhostTransform.SetRotation(secondGhostRotation.Quaternion());
 	GetWorld()->SpawnActor<AGhostTrail_Cpp>(GetClass(), GhostTransform);
@@ -199,26 +212,25 @@ void ANPC_Cpp::LightningStrikeOnPlayer_BPCallable()
 	}
 }
 
+/*Throw strikes on player and applies damage*/
 void ANPC_Cpp::LightningStrikeOnPlayer_Implementation()
 {
 	FVector vector_Fusion;
 	FVector* make_Array = new FVector[4];
-	USkeletalMeshComponent* temp_Sk = Cast<AWukongCharracter_Cpp>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->getSkeletalMesh();// ->GetComponentLocation();
+	USkeletalMeshComponent* temp_Sk = Cast<AWukongCharracter_Cpp>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->getSkeletalMesh();// skeletal variable
 
-	UCapsuleComponent* temp_Cap = Cast<AWukongCharracter_Cpp>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->GetCapsuleComponent();// ->GetForwardVector();
+	UCapsuleComponent* temp_Cap = Cast<AWukongCharracter_Cpp>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->GetCapsuleComponent();// capsule variable
 
 	vector_Fusion.Set(temp_Cap->GetComponentLocation().X, temp_Cap->GetComponentLocation().Y, temp_Sk->GetComponentLocation().Z);
 
-
+	/*4 strikes so 4 random points in 3d space*/
 	make_Array[0] = vector_Fusion;
 	make_Array[1] = UKismetMathLibrary::RandomUnitVector()*UKismetMathLibrary::RandomFloatInRange(150.f, 500.f) + vector_Fusion;
 	make_Array[2] = UKismetMathLibrary::RandomUnitVector()*UKismetMathLibrary::RandomFloatInRange(150.f, 500.f) + vector_Fusion;
 	make_Array[3] = UKismetMathLibrary::RandomUnitVector()*UKismetMathLibrary::RandomFloatInRange(150.f, 500.f) + vector_Fusion;
 
-
-	
-
 	/*emitter spawning*/
+	/*on each of the 4 points*/
 	for (int i = 0; i < 4; i++) {
 		switch (i) {
 		case 1 :
@@ -238,6 +250,7 @@ void ANPC_Cpp::LightningStrikeOnPlayer_Implementation()
 	}
 }
 
+/*creates a sphere trace for many objects*/
 void ANPC_Cpp::sphereTraces(FVector start, FVector end, float radius, const TArray<TEnumAsByte<EObjectTypeQuery>>& objectsToInteract)
 {
 	TArray<FHitResult> hitResults;
@@ -245,7 +258,7 @@ void ANPC_Cpp::sphereTraces(FVector start, FVector end, float radius, const TArr
 	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), start, end, radius, objectsToInteract, false, ignore, EDrawDebugTrace::None, hitResults, true);
 
 	for (FHitResult temp : hitResults) {
-
+		/*apply physics pulse on every physics simulated objects*/
 		FVector impactPulse = temp.ImpactPoint*FVector( 0,0,UKismetMathLibrary::RandomFloatInRange(100, 180) );
 		if (temp.Component->IsSimulatingPhysics()) {
 			Cast<UStaticMeshComponent>(temp.Component)->AddImpulseAtLocation(impactPulse, temp.Location, NAME_None);
@@ -253,9 +266,10 @@ void ANPC_Cpp::sphereTraces(FVector start, FVector end, float radius, const TArr
 
 		}
 
+		/*send damage to player carracter*/
 		if (UKismetSystemLibrary::GetDisplayName(Cast<UObject>(temp.Actor)) == "WukongCharracter_Cpp") {
 			
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),lightnings_Emitter, temp.Location, FRotator(0, 0, 0), FVector(1, 1, 1), true, EPSCPoolMethod::None);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),lightnings_on_player_Emitter, temp.Location, FRotator(0, 0, 0), FVector(1, 1, 1), true, EPSCPoolMethod::None);
 			goto if_Jump;
 		}
 		else {
@@ -271,6 +285,7 @@ void ANPC_Cpp::sphereTraces(FVector start, FVector end, float radius, const TArr
 	__Reset_Once();
 }
 
+/*run once function, tried to implement function as input*/
 inline void ANPC_Cpp::__Run_Once(void (ANPC_Cpp::*func)(AActor *, float, AActor*) , AActor* ac, float num, AActor* otherac)
 {
 	if (!code_ran) {
@@ -304,7 +319,7 @@ void ANPC_Cpp::HitSideEvent(FVector HitVector_p)
 	/*NORMALIZED DIRECTIONVECTOR*/
 	DirectionVector = FVector(DirectionVector.X / sqrtForNormalization, DirectionVector.Y / sqrtForNormalization, DirectionVector.Z / sqrtForNormalization);
 
-	
+	/*detects dirrection of hit to play the specific animation hit*/
 	if (UKismetMathLibrary::InRange_FloatFloat(UKismetMathLibrary::Dot_VectorVector(HitVector, DirectionVector) , -1, -.7, true, true)) {
 		Front = 1.0;
 		UKismetSystemLibrary::Delay(GetWorld(), .7, FLatentActionInfo::FLatentActionInfo());
@@ -328,8 +343,10 @@ void ANPC_Cpp::HitSideEvent(FVector HitVector_p)
 			Left = 0;
 		}
 	}
+	/*ends detection side*/
 }
 
+/*checks if player is dead*/
 void ANPC_Cpp::playerIsDead()
 {
 	Cast<UKwangAnimEventGraph_Cpp>(KwangMesh->GetAnimInstance())->playerDead = true;

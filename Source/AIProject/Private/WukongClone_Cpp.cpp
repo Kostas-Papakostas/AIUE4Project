@@ -36,6 +36,7 @@ AWukongClone_Cpp::AWukongClone_Cpp()
 void AWukongClone_Cpp::BeginPlay() {
 	Super::BeginPlay();
 
+	/*spawn emitters when a clone spawned*/
 	FVector socketUpVector=UKismetMathLibrary::GetUpVector(CloneMesh->GetSocketRotation("FX_Head"))*50.f;
 	SpawnLocation=socketUpVector+ CloneMesh->GetSocketLocation("FX_Head");
 	FTransform emitterTransform{ FRotator::ZeroRotator,SpawnLocation,FVector::OneVector };
@@ -46,6 +47,7 @@ void AWukongClone_Cpp::BeginPlay() {
 void AWukongClone_Cpp::Destroyed() {
 	Super::Destroyed();
 
+	/*spawn emitters when clones get destroyed*/
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DespawningEmitter, { FRotator::ZeroRotator, CloneMesh->GetSocketLocation("FX_Root"), FVector::OneVector });
 }
 
@@ -53,6 +55,7 @@ void AWukongClone_Cpp::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 	TArray<AActor*> NPCActors;
 
+	/*if clone still exists rotates towards enemy entered the ulti field*/
 	if (!IsActorBeingDestroyed()) {
 		UGameplayStatics::GetAllActorsOfClass(this, ANPC_Cpp::StaticClass(), NPCActors);
 		FVector targetLocation = dynamic_cast<ACharacter*>(NPCActors.operator[](0))->GetCapsuleComponent()->GetComponentLocation();
@@ -65,6 +68,7 @@ void AWukongClone_Cpp::Tick(float DeltaTime) {
 		GetCapsuleComponent()->SetWorldRotation(worldRotation.Quaternion(), false, nullptr, ETeleportType::None);
 		UKismetSystemLibrary::Delay(this, 1.f, FLatentActionInfo::FLatentActionInfo());
 
+		/*checkes the distance of enemy and itself to perform an attack*/
 		if (GetDistanceTo(NPCActors.operator[](0)) <= 180) {
 			if (hitAnimation != NULL) {
 				UAnimInstance *tempInstance = CloneMesh->GetAnimInstance();
@@ -78,21 +82,23 @@ void AWukongClone_Cpp::Tick(float DeltaTime) {
 
 }
 
-
+/*don't need that*/
 void AWukongClone_Cpp::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
+/*animation notify begin event*/
 void AWukongClone_Cpp::OnNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
 {
 	if (!NotifyName.ToString().IsEmpty()) {
+
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEmitter, { FRotator::ZeroRotator,actorToFollow->GetActorLocation(),FVector::OneVector });
-		
 		UGameplayStatics::ApplyDamage(actorToFollow, 250.f, NULL, this, NULL);
 	}
 }
 
+/*not being used*/
 USphereComponent* AWukongClone_Cpp::getRight() {
 	return Right;
 }

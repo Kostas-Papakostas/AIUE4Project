@@ -36,7 +36,6 @@ public:
 
 private:
 
-	//UPROPERTY(BluprintReadWrite, Category = "Variable")
 	UPROPERTY()
 		FVector SpawnLocation;
 
@@ -45,23 +44,24 @@ public:
 	void setSpawnLocation(FVector spawnVector) { SpawnLocation = spawnVector; };
 	FVector getSpawnLocation(FVector spawnVector) { return SpawnLocation; };
 
-
+	/*DON'T NEED THEM*/
 	UPROPERTY(EditAnywhere, Category="Components")
 	class USphereComponent* Left;
 
 	UPROPERTY(EditAnywhere, Category="Components")
 	class USphereComponent* Right;
+	/*DON'T NEED THEM END*/
 	
 	UPROPERTY(EditAnywhere,Category = "Mesh")
 	class USkeletalMeshComponent* CloneMesh;
 
-	UPROPERTY(EditAnywhere, Category="Variable")
+	UPROPERTY(EditAnywhere, Category="Particles Effect")
 	class UParticleSystem* HitEmitter;
 
-	UPROPERTY(EditAnywhere, Category = "Variable")
+	UPROPERTY(EditAnywhere, Category = "Particles Effect")
 	class UParticleSystem* SpawningEmitter;
 
-	UPROPERTY(EditAnywhere, Category ="Variable")
+	UPROPERTY(EditAnywhere, Category ="Particles Effect")
 	class UParticleSystem* DespawningEmitter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")

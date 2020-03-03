@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,7 +5,6 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
 #include "Particles/ParticleSystemComponent.h"
-//#include "GameFramework/Actor.h"
 #include "Particles/ParticleSystem.h"
 #include <functional>
 #include "NPC_Cpp.generated.h"
@@ -41,6 +38,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter Variables", meta = (AllowPrivateAccess = "true"))
 		UParticleSystem* lightnings_Emitter;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter Variables", meta = (AllowPrivateAccess = "true"))
+		UParticleSystem* lightnings_on_player_Emitter;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Emitter Variables", meta = (AllowPrivateAccess = "true"))
 		UParticleSystemComponent* P_Kwang_Primary_Trail_L;
 
@@ -60,21 +60,18 @@ protected:
 		AActor* DamageCauser) override;
 
 
-
 public:	
+
+	float getTeleport() { return teleport; };
 
 	UFUNCTION()
 		USceneComponent* getRootComponent() { return RootComponent; }
-	
-	float getTeleport() { return teleport; };
 
 	UFUNCTION()
 		void playerIsDead();
 
 	UFUNCTION()
 		APatrolPath_Cpp* getPatrolPath();
-
-	void sendDamage(AActor* damagedActor_p, float baseDamage_p, AActor* damageCauser_p);
 
 	UFUNCTION()
 		void HitSideEvent(FVector HitVector_p);
@@ -98,6 +95,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "StrikesEvents")
 	void LightningStrikeOnPlayer_BPCallable();
 
+	void sendDamage(AActor* damagedActor_p, float baseDamage_p, AActor* damageCauser_p);
+
 	inline void __Run_Once(void (ANPC_Cpp::*func)(AActor *, float, AActor*), AActor* ac, float num, AActor* otherac);
 	inline void __Reset_Once() { code_ran = false; };
 
@@ -109,6 +108,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
+	/*components variables for statements handling*/
 	bool StLoop;
 	bool StStart;
 	bool UltiRdy;

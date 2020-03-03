@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -36,7 +35,7 @@ public:
 		class USphereComponent* KwangShield;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Components")
-	class USphereComponent* WukongOverlaps;
+		class USphereComponent* WukongOverlaps;
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Components")
 		bool NPCOverlaps;

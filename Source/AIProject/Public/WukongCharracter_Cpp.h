@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -56,17 +55,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CharParticle)
 		UParticleSystem* p_Wukong_Death;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CharParticle)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Staff)
 		UParticleSystem* p_Wukong_Staff_Impact;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Staff)
 		UParticleSystemComponent* p_Wukong_Trail;
-
-	UFUNCTION()
-		void HitSideEvent(FVector HitVector_p);
-
-	UFUNCTION()
-		void DamageReceivedEvent(float Damage_p);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Staff)
 		UParticleSystemComponent* staff_Particles;
@@ -118,6 +111,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimationHelpers")
 		FVector previousLocation;
 
+public:
 	UFUNCTION()
 		void OnNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
 
@@ -130,15 +124,19 @@ public:
 	UFUNCTION()
 		void OnNotifyEndPoke(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
 
+	UFUNCTION()
+		void HitSideEvent(FVector HitVector_p);
+
+	UFUNCTION()
+		void DamageReceivedEvent(float Damage_p);
+
+	UFUNCTION()
+		USkeletalMeshComponent* getSkeletalMesh() { return WukongMesh; };
+
 protected:
 
-	/** Resets HMD orientation in VR. */
-	void OnResetVR();
-
-	/** Called for forwards/backward input */
 	void MoveForward(float Value);
 
-	/** Called for side to side input */
 	void MoveRight(float Value);
 
 	void Jump_Function();
@@ -158,16 +156,8 @@ protected:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
 
-	/**
-	* Called via input to turn at a given rate.
-	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
-	*/
 	void TurnAtRate(float Rate);
 
-	/**
-	* Called via input to turn look up/down at a given rate.
-	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
-	*/
 	void LookUpAtRate(float Rate);
 
 	void SimpleHit();
@@ -180,6 +170,7 @@ protected:
 
 	void NoiseDistraction();
 
+public:
 	UFUNCTION()
 		void DestroyChar();
 
@@ -195,11 +186,16 @@ protected:
 	UFUNCTION()
 		void SimpleHitEvent(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	/*DEFAULT UE4 STARTER FUNCTIONS*/
 	/** Handler for when a touch input begins. */
 	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
 
+	/** Resets HMD orientation in VR. */
+	void OnResetVR();
+
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+	/*DEFAULT UE4 STARTER FUNCTIONS*/
 
 	void Q_SlamEvent();
 
@@ -225,9 +221,9 @@ public:
 
 	TArray<AActor*> IgnoreActors;
 	//TArray<USphereComponent*> spheresArray;
-	USphereComponent* spheresList[8] = { sphere, sphere1, sphere2, sphere3, sphere4, sphere5, sphere6, sphere7 };
+	USphereComponent* spheresList[8] = { sphere, sphere1, sphere2, sphere3, sphere4, sphere5, sphere6, sphere7 };//Being used to get clone spawn locations
 	TArray<USphereComponent*> spheresArray;
-	USkeletalMeshComponent* getSkeletalMesh();
+
 	bool isEvading;
 	bool Stunned;
 	bool Recovered;

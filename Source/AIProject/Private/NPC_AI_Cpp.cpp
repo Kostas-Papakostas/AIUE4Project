@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "NPC_AI_Cpp.h"
 #include "AIController.h"
@@ -14,7 +13,7 @@
 #include "ConstructorHelpers.h"
 #include "UObject/Object.h"
 
-
+//Run once macro(pragma once could also work)
 #define RUN_ONCE(runcode) \
 do\
 {	\
@@ -73,7 +72,7 @@ void ANPC_AI_Cpp::Possess(APawn* Pawn) {
 	Super::Possess(Pawn);
 }
 
-void ANPC_AI_Cpp::BeginPlay() {
+void ANPC_AI_Cpp::BeginPlay() {//BLACKBOARD VALUES INITIALIZED 
 	Super::BeginPlay();
 
 	UKismetSystemLibrary::Delay(this, 5.f, FLatentActionInfo::FLatentActionInfo());
@@ -81,7 +80,6 @@ void ANPC_AI_Cpp::BeginPlay() {
 
 	npc_Pawn = Cast<ANPC_Cpp>(AController::GetPawn());
 	if (npc_Pawn) {
-
 		AAIController::GetBlackboardComponent()->SetValueAsBool(UKismetSystemLibrary::MakeLiteralName("PathLooping"), npc_Pawn->getPatrolPath()->IsLooping);
 		AAIController::GetBlackboardComponent()->SetValueAsBool(UKismetSystemLibrary::MakeLiteralName("CanSeePlayer"), false);
 		AAIController::GetBlackboardComponent()->SetValueAsFloat(UKismetSystemLibrary::MakeLiteralName("Time"), npc_Pawn->getPatrolPath()->WaitTime);
@@ -90,22 +88,22 @@ void ANPC_AI_Cpp::BeginPlay() {
 	}
 }
 
-FRotator ANPC_AI_Cpp::GetControlRotation() const {
+FRotator ANPC_AI_Cpp::GetControlRotation() const {//RETURNS CONTROLLER ROTATION
 	if (GetPawn() == nullptr) {
 		return FRotator(0.f, 0.f, 0.f);
 	}
-
 	return FRotator(0.f, GetPawn()->GetActorRotation().Yaw, 0.f);
 }
 
 void ANPC_AI_Cpp::OnPawnSensed(AActor *actor, FAIStimulus stimulusAI) {
-
-	if (Cast<AWukongCharracter_Cpp>(actor)!=nullptr) {
+	//EVENT CALLED WHEN A PAWN SENSED
+	if (Cast<AWukongCharracter_Cpp>(actor)!=nullptr) {//checks for a successsful dynamic_cast
 		
 		UAIPerceptionSystem::GetSenseClassForStimulus(GetWorld(), stimulusAI);
 
 		bool sensed = stimulusAI.WasSuccessfullySensed();
 
+		//Value chenge for each of the 2 blackboards
 		AAIController::GetBlackboardComponent()->SetValueAsBool(UKismetSystemLibrary::MakeLiteralName("CanSeePlayer"), sensed);
 
 		AAIController::GetBlackboardComponent()->SetValueAsBool(
@@ -113,13 +111,14 @@ void ANPC_AI_Cpp::OnPawnSensed(AActor *actor, FAIStimulus stimulusAI) {
 	}
 }
 
+/*******IS BEING USED TO DETECT NOISE FROM PLEYER*******/
 void ANPC_AI_Cpp::OnPawnDetected(const TArray<AActor*> &DetectedPawns) {
 	FActorPerceptionBlueprintInfo info;
 	for (AActor* actor : DetectedPawns) {
 		AIPerception->GetActorsPerception(actor, info);
 		for (FAIStimulus lastSense : info.LastSensedStimuli) {
-			FVector stLocation = lastSense.StimulusLocation;
-			FVector rcvLocation = lastSense.ReceiverLocation;
+			FVector stLocation = lastSense.StimulusLocation;//stores player's noise location
+			FVector rcvLocation = lastSense.ReceiverLocation;//location to play sound
 			
 			if (lastSense.Tag.ToString().Equals("Noise",ESearchCase::IgnoreCase )) {
 				AAIController::GetBlackboardComponent()->SetValueAsBool(UKismetSystemLibrary::MakeLiteralName("IsInvestigating"), true);
@@ -133,6 +132,7 @@ void ANPC_AI_Cpp::OnPawnDetected(const TArray<AActor*> &DetectedPawns) {
 	}
 }
 
+/*EVENT CALLED DELEGATED WHEN DAMAGE RECEIVED*/
 void ANPC_AI_Cpp::DamageReceivedEvent_Implementation(int damage) {
 	if (damage > 20) {
 		RunBehaviorTree(Combat_Tree);
@@ -141,7 +141,7 @@ void ANPC_AI_Cpp::DamageReceivedEvent_Implementation(int damage) {
 	}
 }
 
-
+/*CHANGE STUN STATEMENT*/
 void ANPC_AI_Cpp::Stunned_Implementation() {
 	AAIController::GetBlackboardComponent()->SetValueAsBool(UKismetSystemLibrary::MakeLiteralName("GotStunned"), true);
 	if (BBC_Tree != NULL) {
@@ -149,6 +149,7 @@ void ANPC_AI_Cpp::Stunned_Implementation() {
 	}
 }
 
+/*CHANGE STUN STATEMENT*/
 void ANPC_AI_Cpp::Restored_Implementation(){
 	AAIController::GetBlackboardComponent()->SetValueAsBool(UKismetSystemLibrary::MakeLiteralName("GotStunned"), false);
 	if (BBC_Tree != NULL) {
@@ -156,6 +157,7 @@ void ANPC_AI_Cpp::Restored_Implementation(){
 	}
 }
 
+/*SMART LINK ACTIVATION*/
 void ANPC_AI_Cpp::SmartLinkJump_Implementation(FVector GoThere) {
 	AAIController::GetBlackboardComponent()->SetValueAsVector(UKismetSystemLibrary::MakeLiteralName("TargetLocation"), GoThere);
 }

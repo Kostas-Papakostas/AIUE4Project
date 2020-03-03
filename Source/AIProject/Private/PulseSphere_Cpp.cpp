@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+
 #include "PulseSphere_Cpp.h"
 #include "Engine/StaticMeshActor.h"
 #include "Kismet/GameplayStatics.h"
@@ -45,15 +45,15 @@ void APulseSphere_Cpp::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor*
 
 void APulseSphere_Cpp::OnWukongBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) 
 {
-	if (UKismetSystemLibrary::GetDisplayName(OtherActor).Equals("WukongCharracter_Cpp_BP")&&NPCOverlaps) 
+	if (UKismetSystemLibrary::GetDisplayName(OtherActor).Equals("WukongCharracter_Cpp_BP")&&NPCOverlaps) /*when npc is inside the ball and wukong is getting closer*/
 	{
 		AWukongCharracter_Cpp* tempChar = Cast<AWukongCharracter_Cpp>(OtherActor);
 		{
-			pulseSphereMesh->ToggleVisibility();
+			pulseSphereMesh->ToggleVisibility();/*effect ball*/
 
 			if (tempChar != nullptr) {
-				FRotator rotateToPlayer = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), tempChar->GetCapsuleComponent()->GetComponentLocation());
 
+				FRotator rotateToPlayer = UKismetMathLibrary::FindLookAtRotation(OtherActor->GetActorLocation(), tempChar->GetCapsuleComponent()->GetComponentLocation());
 				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), pulseEmitter, OtherActor->GetActorLocation(), rotateToPlayer, FVector::OneVector);
 			}
 			UKismetSystemLibrary::Delay(this, 1.f, FLatentActionInfo::FLatentActionInfo());
@@ -61,6 +61,7 @@ void APulseSphere_Cpp::OnWukongBeginOverlap(UPrimitiveComponent* OverlappedComp,
 		}
 
 		{
+			/*throws player back, on the oposite side the player jumped*/
 			tempChar->GetCharacterMovement()->AirControl = 1.f;
 			Cast<UWukongAnimEventGraph_Cpp>(tempChar->GetMesh()->GetAnimInstance())->KnockedBack = true;
 			tempChar->LaunchCharacter(UKismetMathLibrary::GetForwardVector({ 0.f,tempChar->GetControlRotation().Yaw, 0.f })*-2100, true, false);

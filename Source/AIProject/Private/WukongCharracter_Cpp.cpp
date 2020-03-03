@@ -1,8 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-/*NEED TO IMPLEMENT 
-THE BLUE BOXES,
-DIT DAMAGE SEND AND SIDE*/
-
 #include "WukongCharracter_Cpp.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "NPC_Cpp.h"
@@ -43,6 +38,21 @@ AWukongCharracter_Cpp::AWukongCharracter_Cpp()
 	isEvading = false;
 	Stunned = false;
 	Recovered = true;
+	UltiActive=false;
+	UltiCallingAndCasting=false;
+	DoubleJump=false;
+	KnockedBack=false;
+	SaveAttack=false;
+	IsAttacking=false;
+	OnHit=false;
+	PokeRdy=true;
+	RightClickHit=false;
+	FlipFlopEvade=false; //STARTS AS FALSE, CAUSE THERE IS NO EVADE
+	FlipFlopEmote=false;
+	UltiRdy=true;
+	Qslam=true;
+
+
 	WukongMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WukongSkeletalMesh"));
 	WukongMesh->SetupAttachment(GetCapsuleComponent());
 	WukongMesh->SetAnimInstanceClass(UWukongAnimEventGraph_Cpp::StaticClass());
@@ -69,6 +79,7 @@ AWukongCharracter_Cpp::AWukongCharracter_Cpp()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	/*some initilizations*/
 	p_Wukong_Trail = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Wukong_trail"));
 	p_Wukong_Trail->SetupAttachment(WukongMesh);
 
@@ -132,6 +143,7 @@ void AWukongCharracter_Cpp::BeginPlay()
 void AWukongCharracter_Cpp::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	/*CHECKS IF STUN IS OVER, AND ABILLITIES' COOLDOWN*/
 	if (Qslam) {
 		if (UGameplayStatics::GetRealTimeSeconds(GetWorld()) >= slamCooldown) {
 			Qslam = false;
@@ -147,7 +159,7 @@ void AWukongCharracter_Cpp::Tick(float DeltaTime)
 		UltiRdy = true;
 	}
 	if (UltiActive) {
-		if (UGameplayStatics::GetRealTimeSeconds(GetWorld()) >= UltiTimer) {
+		if (UGameplayStatics::GetRealTimeSeconds(GetWorld()) >= UltiTimer) {//IF ULTI IS OVER, DESPAWN ALL THE CLONES
 			UltiActive = false;
 			TArray<AActor*> outActors_v;
 			UGameplayStatics::GetAllActorsWithTag(GetWorld(), TEXT("WukongClone"), outActors_v);
@@ -156,25 +168,29 @@ void AWukongCharracter_Cpp::Tick(float DeltaTime)
 				UltiCallingAndCasting = false;
 			}
 		}
-		else {
+		else {//IF ULTI IS ACTIVE
 			TArray<AActor*> outActors_v;
 			UGameplayStatics::GetAllActorsWithTag(GetWorld(), TEXT("WukongClone"), outActors_v);
-			radius += 50.f;
-			IgnoreActors.Append(outActors_v);
+			radius += 50.f;//NO NEED
+			IgnoreActors.Append(outActors_v);//IGNORE CLONES
 			FHitResult outHitStruct;
 			TArray<TEnumAsByte<EObjectTypeQuery>> obj_interact;
-			obj_interact.Add(EObjectTypeQuery::ObjectTypeQuery6);
+			obj_interact.Add(EObjectTypeQuery::ObjectTypeQuery6);//PAWN
+
 			UKismetSystemLibrary::SphereTraceSingleForObjects(GetWorld(), GetCapsuleComponent()->GetComponentLocation(), (GetCapsuleComponent()->GetUpVector() + GetCapsuleComponent()->GetComponentLocation()), 500.f, obj_interact, false, IgnoreActors, EDrawDebugTrace::None,outHitStruct,true);
-			if (UKismetSystemLibrary::GetDisplayName(Cast<UObject>(outHitStruct.Actor))=="NPC_Cpp") {
+
+			if (UKismetSystemLibrary::GetDisplayName(Cast<UObject>(outHitStruct.Actor))=="NPC_Cpp") {//CHECKS IF NPC ENTERED THE AREA, AND DO SOME STUFF
 				UKismetSystemLibrary::Delay(GetWorld(), 2.f, FLatentActionInfo::FLatentActionInfo());
 				ANPC_Cpp* temp = Cast<ANPC_Cpp>(outHitStruct.Actor);
-				temp->StStart = true;
+				temp->StStart = true;//MINI STUNS
 				temp->StunRecoveryTimer = ComputeCooldown(1.5);
 				temp->GetCharacterMovement()->StopMovementImmediately();
 			}
 		}
 	}
+	/*END OF TIME CHECKING*/
 
+	/*CHECKS IF DEAD*/
 	if (HPRemaining <= 0) {
 		TArray<AActor*> outActors_v;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ANPC_Cpp::StaticClass(), outActors_v);
@@ -186,7 +202,8 @@ void AWukongCharracter_Cpp::Tick(float DeltaTime)
 
 float AWukongCharracter_Cpp::ComputeSlopeAngle()
 {
-	
+	//BEING USED IN THE BLENDSPACE IN ORDER TO CHENGE CHARRACTER'S SLOPE ANGLE
+	//i.e. upstairs downstairs
 	FRotator look = UKismetMathLibrary::FindLookAtRotation(previousLocation, this->GetActorLocation());
 	previousLocation = previousLocation;
 	
@@ -194,6 +211,7 @@ float AWukongCharracter_Cpp::ComputeSlopeAngle()
 	return (radiansAtan*10.f);
 }
 
+/*HANDLES JUMP AND DOUBLE JUMP EVENTS*/
 void AWukongCharracter_Cpp::Jump_Function() {
 	if (!Stunned) {
 		if (JumpCounter <= 1) {
@@ -206,8 +224,10 @@ void AWukongCharracter_Cpp::Jump_Function() {
 				if (this->GetCharacterMovement()->IsFalling()) {
 					this->LaunchCharacter(FVector(0.f, 0.f, 2000.f), false, true);
 					FVector location(WukongMesh->GetSocketLocation(WukongMesh->GetSocketBoneName(TEXT("root"))));
-					UGameplayStatics::SpawnEmitterAtLocation(this, p_Jump_Cloud,location, FRotator::ZeroRotator, FVector::OneVector);
-					UKismetSystemLibrary::Delay(GetWorld(), 2.f, FLatentActionInfo::FLatentActionInfo());
+
+					UGameplayStatics::SpawnEmitterAtLocation(this, p_Jump_Cloud,location, FRotator::ZeroRotator, FVector::OneVector);//SPAWN THE CLOUD EFFECT
+
+					UKismetSystemLibrary::Delay(GetWorld(), 2.f, FLatentActionInfo::FLatentActionInfo());//WAITS THE ANIMATION TO END
 					DoubleJump = false;
 				}
 			}
@@ -215,6 +235,7 @@ void AWukongCharracter_Cpp::Jump_Function() {
 	}
 }
 
+//HANDLES THE LANDED EVENTS
 void AWukongCharracter_Cpp::Landed(const FHitResult &Hit) {
 	Super::Landed(Hit);
 
@@ -222,6 +243,7 @@ void AWukongCharracter_Cpp::Landed(const FHitResult &Hit) {
 	JumpCounter = 0;
 }
 
+/*DEFAULT FUNCTIONS*/
 void AWukongCharracter_Cpp::OnResetVR()
 {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
@@ -236,8 +258,10 @@ void AWukongCharracter_Cpp::TouchStopped(ETouchIndex::Type FingerIndex, FVector 
 {
 	StopJumping();
 }
+/*DEFAULT FUNCTIONS END*/
 
 void AWukongCharracter_Cpp::ComboAttackSave() {
+	//KEEPS THE PREVIOUS ATTACK TO DO THE COMBO
 	if (SaveAttack) {
 		SaveAttack = false;
 		UAnimInstance* animInstance = WukongMesh->GetAnimInstance();
@@ -245,18 +269,20 @@ void AWukongCharracter_Cpp::ComboAttackSave() {
 	}
 }
 
+//DISTRACTS THE NPC WITH THE NOISE
 void AWukongCharracter_Cpp::NoiseDistraction() {
 	UGameplayStatics::PlaySoundAtLocation(GetWorld(),s_Wukong_Distraction, this->GetActorLocation());
 	UAISense_Hearing::ReportNoiseEvent(GetWorld(), this->GetActorLocation(), 1.f,(AActor*)this, 15000.f, TEXT("Noise"));
 }
 
-void AWukongCharracter_Cpp::ResetCombo() {
+
+void AWukongCharracter_Cpp::ResetCombo() {//IF PLAYER WON'T HIT OR REACHES THE 4th ANIMATION. RESETS THE COMBO
 	AttackCount = 0;
 	SaveAttack = false;
 	IsAttacking = false;
 }
 
-void AWukongCharracter_Cpp::SimpleHit() {
+void AWukongCharracter_Cpp::SimpleHit() {//THIS TRIGGERS THE HIT
 	if (!isEvading && !Stunned && !UltiActive && !KnockedBack) {
 		if (IsAttacking) {
 			SaveAttack = true;
@@ -269,6 +295,7 @@ void AWukongCharracter_Cpp::SimpleHit() {
 	}
 }
 
+/*PICKS THE ANIM MONTAGE TO PLAY*/
 inline void AWukongCharracter_Cpp::pickAMontage(int attaCount_p, UAnimInstance* animMontage_p) {
 	switch (AttackCount) {
 	case 0:
@@ -299,6 +326,7 @@ inline void AWukongCharracter_Cpp::pickAMontage(int attaCount_p, UAnimInstance* 
 	}
 }
 
+//NOTIFIES WHEN CAPSULES BEGIN/END OVERLAPPING A COMPONENT
 void AWukongCharracter_Cpp::OnNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload) {
 	OnHit = true;
 }
@@ -311,7 +339,9 @@ void AWukongCharracter_Cpp::OnNotifyEndPoke(FName NotifyName, const FBranchingPo
 	ExtendC->SetActive(false, false);
 	RightClickHit = false;
 }
+//NOTIFIES END
 
+/*HANDLES THE RIGHT CLICK HIT(COOLDOWN, MONTAGE)*/
 void AWukongCharracter_Cpp::PokeHit() {
 	if (!isEvading&&!UltiActive&&!Stunned&&!UltiCallingAndCasting&&PokeRdy) {
 		RightClickHit = true;
@@ -320,17 +350,19 @@ void AWukongCharracter_Cpp::PokeHit() {
 		IsAttacking = false;
 		PokeRdy = false;
 		PokeCooldownTimer = ComputeCooldown(1.5f);
+		/*ADDS DYNAMIC DELEGATE FUNCITONS*/
 		PokeMontage->OnPlayMontageNotifyBegin.AddDynamic(this, &AWukongCharracter_Cpp::OnNotifyBeginPoke);
 		PokeMontage->OnPlayMontageNotifyBegin.AddDynamic(this, &AWukongCharracter_Cpp::OnNotifyEndPoke);
 	}
 }
 
+/*HANDLES THE CAPSULE EVENT*/
 void AWukongCharracter_Cpp::PokeHitEvent(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
 	FString actor_Name = UKismetSystemLibrary::GetDisplayName(OtherActor);
 
 	if (RightClickHit) {
 		{
-			if (actor_Name.Compare(TEXT("NPC_Cpp"), ESearchCase::CaseSensitive)) {
+			if (actor_Name.Compare(TEXT("NPC_Cpp"), ESearchCase::CaseSensitive)) {/*IF IT HITS NPC ADDS A STUN, AND APPLIES DAMAGE*/
 				Cast<ANPC_Cpp>(OtherActor)->StStart = true;
 				Cast<ANPC_Cpp>(OtherActor)->StunRecoveryTimer = ComputeCooldown(1.5);
 				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), p_Wukong_Poke_Hit, Cast<ANPC_Cpp>(OtherActor)->getRootComponent()->GetComponentLocation());
@@ -339,7 +371,7 @@ void AWukongCharracter_Cpp::PokeHitEvent(UPrimitiveComponent* OverlappedComp, AA
 		}
 
 		{
-			if (OtherComponent->IsSimulatingPhysics()) {
+			if (OtherComponent->IsSimulatingPhysics()) {/*IF OBJECT IS SIMULATING PHYSICS, DOES STUFF*/
 				FVector impulse = ((OtherComponent->GetUpVector()*-1.f) + OtherComponent->GetComponentLocation())*120.f;
 				if (Cast<UPrimitiveComponent>(OtherComponent) != nullptr) {
 					Cast<UPrimitiveComponent>(OtherComponent)->AddImpulseAtLocation(impulse, OtherComponent->GetComponentLocation());
@@ -350,21 +382,25 @@ void AWukongCharracter_Cpp::PokeHitEvent(UPrimitiveComponent* OverlappedComp, AA
 	}
 }
 
+/*HANDLES THE SIMPLE HIT COLLISION EVEMTS*/
 void AWukongCharracter_Cpp::SimpleHitEvent(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	USkeletalMeshComponent* NPCmesh;
-	if (OnHit) {
+	if (OnHit) {//IF I HIT
 		NPCmesh= Cast<ANPC_Cpp>(OtherActor)->KwangMesh;
 		FHitResult outHit_v;
 		if (OtherComponent == Cast<ANPC_Cpp>(OtherActor)->GetCapsuleComponent()) {
 			FVector endPoint = UKismetMathLibrary::GetUpVector(StaffTipA->GetComponentRotation())*150.f + StaffTipA->GetComponentLocation();
 			//FCollisionObjectQueryParams(ECC_TO_BITFIELD(ECC_WorldStatic));
 
-				UKismetSystemLibrary::SphereTraceSingle(GetWorld(), StaffTipA->GetComponentLocation(), endPoint, 120.f,ETraceTypeQuery::TraceTypeQuery2 , false, IgnoreActors,EDrawDebugTrace::None,outHit_v,true);
+				UKismetSystemLibrary::SphereTraceSingle(GetWorld(), StaffTipA->GetComponentLocation(), endPoint, 120.f,ETraceTypeQuery::TraceTypeQuery2 , false, IgnoreActors,EDrawDebugTrace::None,outHit_v,true);//CREATES A SPHERE TRACE WHEN OVERLAPPED CAPSULE
+
 				if (UKismetSystemLibrary::GetDisplayName(Cast<UObject>(outHit_v.Actor)) == "NPC_Cpp") {
+					/*IF OVERLAPS THE NPC THEN COMPUTE HIT SIDE, SPAWN EMITTERS AND APPLYDAMAGE*/
 					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),p_Wukong_Staff_Impact, StaffTipA->GetComponentLocation());
 					Cast<ANPC_Cpp>(OtherActor)->HitSideEvent(endPoint);
 					UGameplayStatics::ApplyDamage(Cast<ANPC_Cpp>(OtherActor), (float)(AttackCount + 1 * 30.f), nullptr, this, NULL);
+
 					if (UKismetMathLibrary::RandomBoolWithWeight(.1f)) {
 						UGameplayStatics::PlaySoundAtLocation(GetWorld(), s_Wukong_Hit, endPoint);
 					}
@@ -420,6 +456,7 @@ void AWukongCharracter_Cpp::StopJumping_Function() {
 	StopJumping();
 }
 
+/*HANDLES ULTIMATE CALLING AND CASTING*/
 void AWukongCharracter_Cpp::UltimateAction()
 {
 	if (UltiRdy) {
@@ -429,23 +466,23 @@ void AWukongCharracter_Cpp::UltimateAction()
 	}
 }
 
+/*HANDLES CLONES SPAWNING*/
 void AWukongCharracter_Cpp::UltiCast()
 {
 	UltiActive = true;
 	UltiTimer = ComputeCooldown(10.f);
 	USphereComponent* temp = spheresArray.operator[](2);
-	for (USphereComponent* eachSphere : spheresList) {
+
+	for (USphereComponent* eachSphere : spheresList) {//GETS EACH OF THE SPHERES
+
 		FTransform SpawnTransform(UKismetMathLibrary::Conv_VectorToRotator(eachSphere->GetRightVector()), eachSphere->GetComponentLocation(), WukongMesh->GetComponentScale());
 		FActorSpawnParameters temp;
 		temp.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		AWukongClone_Cpp* cloneSpawn = GetWorld()->SpawnActor<AWukongClone_Cpp>(AWukongClone_Cpp::StaticClass(),SpawnTransform,temp);
+
 		cloneSpawn->setSpawnLocation(eachSphere->GetComponentLocation());
 		cloneSpawn->Tags = { TEXT("WukongClone_Cpp") };
 	}
-}
-
-USkeletalMeshComponent* AWukongCharracter_Cpp::getSkeletalMesh() {
-	return WukongMesh;
 }
 
 void AWukongCharracter_Cpp::TurnAtRate(float Rate)
@@ -460,6 +497,7 @@ void AWukongCharracter_Cpp::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
+/*MOVE CHARRACTER IF NOT STUNNED OR NOT CASTINGG ULTI*/
 void AWukongCharracter_Cpp::MoveForward(float Value)
 {
 	if ((Controller != NULL) && (Value != 0.0f))
@@ -476,6 +514,7 @@ void AWukongCharracter_Cpp::MoveForward(float Value)
 	}
 }
 
+/*MOVE CHARRACTER IF NOT STUNNED OR NOT CASTINGG ULTI*/
 void AWukongCharracter_Cpp::MoveRight(float Value)
 {
 	if ((Controller != NULL) && (Value != 0.0f))
@@ -493,6 +532,7 @@ void AWukongCharracter_Cpp::MoveRight(float Value)
 	}
 }
 
+/*EVADE ACTION*/
 void AWukongCharracter_Cpp::EvadeAction() {
 	FlipFlopEvade = !FlipFlopEvade;
 	if (FlipFlopEvade) {
@@ -507,6 +547,7 @@ void AWukongCharracter_Cpp::EvadeAction() {
 	}
 }
 
+//DAMAGE RECEIVED
 void AWukongCharracter_Cpp::DamageReceivedEvent(float Damage_p)
 {
 	if (UltiCallingAndCasting || UltiActive) {
@@ -518,6 +559,7 @@ void AWukongCharracter_Cpp::DamageReceivedEvent(float Damage_p)
 	}
 }
 
+/*IF GOT KILLED ENEMY TAUNTS AND QUIT GAME*/
 void AWukongCharracter_Cpp::DestroyChar()
 {
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), p_Wukong_Death, this->GetActorLocation(), FRotator::ZeroRotator, FVector(5.f, 5.f, 5.f));
@@ -585,12 +627,14 @@ void AWukongCharracter_Cpp::HitSideEvent(FVector HitVector_p)
 		}
 	}
 }
+
+/*WHEN Q SLAM TRACE SPHERE CREATED*/
 void AWukongCharracter_Cpp::OnQslamNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload & BranchingPointPayload)
 {
 	TArray<FHitResult> outHit_vslam;
 	UKismetSystemLibrary::SphereTraceMultiForObjects(GetWorld(), WukongMesh->GetSocketLocation(TEXT("FX_Staff_Tip_B")), WukongMesh->GetForwardVector()*50.f, 650.f, objects, false, IgnoreActors, EDrawDebugTrace::None,outHit_vslam,true);
 	for (FHitResult eachComp : outHit_vslam) {
-		if (Cast<USceneComponent>(eachComp.Component)->IsSimulatingPhysics(NAME_None)) {
+		if (Cast<USceneComponent>(eachComp.Component)->IsSimulatingPhysics(NAME_None)) {/*APPLIES IMPULSE ON DESTRUCTIBLE AND PHYSICS COMPONENTS*/
 
 			if (Cast<UStaticMeshComponent>(eachComp.Component) != nullptr) {
 				Cast<UStaticMeshComponent>(eachComp.Component)->AddImpulseAtLocation(eachComp.ImpactPoint*FVector(0, 0, UKismetMathLibrary::RandomFloatInRange(100.f, 180.f)), eachComp.Location, NAME_None);
@@ -601,7 +645,7 @@ void AWukongCharracter_Cpp::OnQslamNotifyBegin(FName NotifyName, const FBranchin
 			}
 		}
 
-		if (UKismetSystemLibrary::GetDisplayName(Cast<UObject>(eachComp.Actor)) == "NPC_Cpp") {
+		if (UKismetSystemLibrary::GetDisplayName(Cast<UObject>(eachComp.Actor)) == "NPC_Cpp") {/*STUNS NPC CHARRACTER*/
 			if (Cast<ANPC_Cpp>(eachComp.Actor)->getTeleport()) {
 				UGameplayStatics::ApplyDamage(Cast<ANPC_Cpp>(eachComp.Actor), 100.f, nullptr, this, NULL);
 			}
@@ -618,7 +662,7 @@ void AWukongCharracter_Cpp::OnQslamNotifyBegin(FName NotifyName, const FBranchin
 	}
 }
 
-
+/*BEING CALLED WITH THE INPUT*/
 void AWukongCharracter_Cpp::Q_SlamEvent()
 {
 	if (!GetMovementComponent()->IsFalling()&&!Qslam&&!isEvading&&!Stunned&&!UltiActive&&!UltiCallingAndCasting) {
@@ -627,6 +671,7 @@ void AWukongCharracter_Cpp::Q_SlamEvent()
 		Qslam = true;
 		slamCooldown = ComputeCooldown(10.f);
 		IsAttacking = false;
+		/*WHEN NOTIFY BEGINS USES THIS DELEGATED FUNTION*/
 		qslamAnim->OnPlayMontageNotifyBegin.AddDynamic(this, &AWukongCharracter_Cpp::OnQslamNotifyBegin);
 
 	}
