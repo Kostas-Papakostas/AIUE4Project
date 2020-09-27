@@ -19,8 +19,10 @@ AWukongClone_Cpp::AWukongClone_Cpp()
 	CloneMesh->CastShadow = true;
 	CloneMesh->bCastDynamicShadow = true;
 
-	CloneMesh->RelativeRotation = FRotator{ 0,-90.f,0 };
-	CloneMesh->RelativeLocation = FVector{ 0,0,-90.f };
+	//CloneMesh->RelativeRotation = FRotator{ 0,-90.f,0 };
+	//CloneMesh->RelativeLocation = FVector{ 0,0,-90.f };
+	CloneMesh->SetRelativeLocation(FVector{ 0,0,-90.f });
+	CloneMesh->SetRelativeRotation(FRotator{ 0,-90.f,0 });
 
 
 	Right = CreateDefaultSubobject<USphereComponent>(TEXT("Right sphere"));
@@ -88,6 +90,11 @@ void AWukongClone_Cpp::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
+USphereComponent* AWukongClone_Cpp::getRight()
+{
+	return Right;
+}
+
 /*animation notify begin event*/
 void AWukongClone_Cpp::OnNotifyBegin(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
 {
@@ -96,9 +103,4 @@ void AWukongClone_Cpp::OnNotifyBegin(FName NotifyName, const FBranchingPointNoti
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEmitter, { FRotator::ZeroRotator,actorToFollow->GetActorLocation(),FVector::OneVector });
 		UGameplayStatics::ApplyDamage(actorToFollow, 250.f, NULL, this, NULL);
 	}
-}
-
-/*not being used*/
-USphereComponent* AWukongClone_Cpp::getRight() {
-	return Right;
 }

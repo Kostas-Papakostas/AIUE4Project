@@ -17,7 +17,7 @@ APulseSphere_Cpp::APulseSphere_Cpp() {
 
 
 	pulseSphereMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PulseSphere"));
-	pulseSphereMesh->bVisible = false;
+	pulseSphereMesh->SetVisibility(true);
 
 	KwangShield = CreateDefaultSubobject<USphereComponent>(TEXT("Shield"));
 	WukongOverlaps = CreateDefaultSubobject<USphereComponent>(TEXT("PushPulse"));

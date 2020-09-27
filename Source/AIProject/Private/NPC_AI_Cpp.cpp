@@ -28,7 +28,10 @@ ANPC_AI_Cpp::ANPC_AI_Cpp(){
 
 	PrimaryActorTick.bCanEverTick = false;
 
-	static ConstructorHelpers::FObjectFinder<USoundBase> soundEffect(TEXT("/Game/ParagonSunWukong/Audio/Cues/Wukong_Intro_Question.Wukong_Intro_Question"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> myObject(TEXT("/Game/ParagonSunWukong/Audio/Cues/Wukong_Intro_Question.Wukong_Intro_Question"));
+	if (myObject.Succeeded()) {
+		soundEffect = myObject.Object;
+	}
 	AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception Component"));
 	//SetPerceptionComponent(*CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception Component")));
 
@@ -64,12 +67,13 @@ ANPC_AI_Cpp::ANPC_AI_Cpp(){
 
 }
 
-void ANPC_AI_Cpp::Tick(float DeltaSeconds) {
-	Super::Tick(DeltaSeconds);
+void ANPC_AI_Cpp::OnPossess(APawn* Pawn_p)
+{
+	Super::OnPossess(Pawn_p);
 }
 
-void ANPC_AI_Cpp::Possess(APawn* Pawn) {
-	Super::Possess(Pawn);
+void ANPC_AI_Cpp::Tick(float DeltaSeconds) {
+	Super::Tick(DeltaSeconds);
 }
 
 void ANPC_AI_Cpp::BeginPlay() {//BLACKBOARD VALUES INITIALIZED 

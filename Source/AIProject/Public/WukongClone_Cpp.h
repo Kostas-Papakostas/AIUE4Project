@@ -31,7 +31,8 @@ public:
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	USphereComponent* AWukongClone_Cpp::getRight();
+	UFUNCTION()
+	USphereComponent* getRight();
 	
 
 private:

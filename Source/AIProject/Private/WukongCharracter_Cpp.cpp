@@ -476,9 +476,9 @@ void AWukongCharracter_Cpp::UltiCast()
 	for (USphereComponent* eachSphere : spheresList) {//GETS EACH OF THE SPHERES
 
 		FTransform SpawnTransform(UKismetMathLibrary::Conv_VectorToRotator(eachSphere->GetRightVector()), eachSphere->GetComponentLocation(), WukongMesh->GetComponentScale());
-		FActorSpawnParameters temp;
-		temp.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		AWukongClone_Cpp* cloneSpawn = GetWorld()->SpawnActor<AWukongClone_Cpp>(AWukongClone_Cpp::StaticClass(),SpawnTransform,temp);
+		FActorSpawnParameters tempSpawnP;
+		tempSpawnP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		AWukongClone_Cpp* cloneSpawn = GetWorld()->SpawnActor<AWukongClone_Cpp>(AWukongClone_Cpp::StaticClass(),SpawnTransform,tempSpawnP);
 
 		cloneSpawn->setSpawnLocation(eachSphere->GetComponentLocation());
 		cloneSpawn->Tags = { TEXT("WukongClone_Cpp") };
@@ -565,7 +565,7 @@ void AWukongCharracter_Cpp::DestroyChar()
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), p_Wukong_Death, this->GetActorLocation(), FRotator::ZeroRotator, FVector(5.f, 5.f, 5.f));
 	UKismetSystemLibrary::Delay(GetWorld(), 5.f, FLatentActionInfo::FLatentActionInfo());
 	this->K2_DestroyActor();
-	UKismetSystemLibrary::QuitGame(GetWorld(), Cast<APlayerController>(this->GetController()), EQuitPreference::Quit);
+	UKismetSystemLibrary::QuitGame(GetWorld(), Cast<APlayerController>(this->GetController()), EQuitPreference::Quit, true);
 }
 
 void AWukongCharracter_Cpp::EmoteAction()

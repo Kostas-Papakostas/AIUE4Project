@@ -150,7 +150,7 @@ void ANPC_Cpp::Destroyed() {
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AWukongCharracter_Cpp::StaticClass(), players);
 	AController* temp_Controller = Cast<APawn>(players.operator[](0))->GetController();
 	
-	UKismetSystemLibrary::QuitGame(GetWorld(), Cast<APlayerController>(temp_Controller), EQuitPreference::Quit);
+	UKismetSystemLibrary::QuitGame(GetWorld(), Cast<APlayerController>(temp_Controller), EQuitPreference::Quit,true);
 }
 
 float ANPC_Cpp::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,

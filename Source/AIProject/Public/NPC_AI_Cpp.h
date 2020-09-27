@@ -62,7 +62,7 @@ protected:
 
 public:
 /*******unreal inherited functions********/
-	virtual void Possess(APawn* Pawn) override;
+	virtual void OnPossess(APawn* Pawn_p) override;
 
 	virtual void Tick(float DeltaSeconds) override;
 
