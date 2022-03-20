@@ -153,7 +153,7 @@ void AWukongCharracter_Cpp::HitSideEvent(FVector HitVector_p)
 
 # NPC Player class:
 
-Behavior tree and animation blueprint are blueprint pure.
+Behavior tree and animation blueprint are blueprint pure. Movement are blueprint tasks and not in C++.
 
 Lightning ability functions:
 
